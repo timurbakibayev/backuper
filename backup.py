@@ -19,6 +19,31 @@ def get_s3_client():
     )
 
 
+def list_all_databases(db_config: dict) -> list[str]:
+    """List all databases on the PostgreSQL server."""
+    import os
+    env = os.environ.copy()
+    env['PGPASSWORD'] = db_config['password']
+
+    cmd = [
+        'psql',
+        '-h', db_config['host'],
+        '-p', db_config['port'],
+        '-U', db_config['user'],
+        '-d', 'postgres',
+        '-t', '-A',  # tuples only, unaligned
+        '-c', "SELECT datname FROM pg_database WHERE datistemplate = false AND datname NOT IN ('postgres');"
+    ]
+
+    result = subprocess.run(cmd, env=env, capture_output=True)
+
+    if result.returncode != 0:
+        raise Exception(f"Failed to list databases: {result.stderr.decode()}")
+
+    databases = [db.strip() for db in result.stdout.decode().strip().split('\n') if db.strip()]
+    return databases
+
+
 def create_pg_dump(db_config: dict) -> bytes:
     """Run pg_dump and return compressed bytes."""
     import os
@@ -67,10 +92,30 @@ def backup_database(s3_client, db_config: dict):
     print(f"Backup completed for {db_name}!")
 
 
+def expand_database_configs(db_configs: list[dict]) -> list[dict]:
+    """Expand any 'all' database configs to individual database configs."""
+    expanded = []
+    for db_config in db_configs:
+        if db_config['name'] == 'all':
+            print(f"Listing all databases on {db_config['host']}:{db_config['port']}...")
+            databases = list_all_databases(db_config)
+            print(f"Found {len(databases)} databases: {', '.join(databases)}")
+            for db_name in databases:
+                expanded.append({
+                    **db_config,
+                    'name': db_name
+                })
+        else:
+            expanded.append(db_config)
+    return expanded
+
+
 def main():
     s3_client = get_s3_client()
 
-    for db_config in DATABASES:
+    db_configs = expand_database_configs(DATABASES)
+
+    for db_config in db_configs:
         try:
             backup_database(s3_client, db_config)
         except Exception as e:
