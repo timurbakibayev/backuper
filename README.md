@@ -33,6 +33,20 @@ Backs up multiple PostgreSQL databases to S3-compatible storage.
        },
    ]
 
+   To backup all databases on a server, use `"name": "all"`:
+   ```python
+   DATABASES = [
+       {
+           "name": "all",
+           "host": "localhost",
+           "port": "5432",
+           "user": "postgres",
+           "password": "password",
+       },
+   ]
+   ```
+   This will automatically discover and backup all databases (excluding templates and `postgres`).
+
    S3_CONFIG = {
        "endpoint_url": "https://your-s3-endpoint",
        "access_key_id": "YOUR_ACCESS_KEY",
