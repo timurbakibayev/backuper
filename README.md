@@ -1,6 +1,6 @@
 # PostgreSQL to S3 Backup Tool
 
-Backs up a PostgreSQL database to S3-compatible storage.
+Backs up multiple PostgreSQL databases to S3-compatible storage.
 
 ## Setup
 
@@ -9,18 +9,37 @@ Backs up a PostgreSQL database to S3-compatible storage.
    pip install -r requirements.txt
    ```
 
-2. Set environment variables (see `local.sh` for example):
+2. Create `local_config.py` from the example:
    ```bash
-   export DB_NAME="your_database"
-   export DB_USER="postgres"
-   export DB_PASSWORD="password"
-   export DB_HOST="localhost"
-   export DB_PORT=5432
-   export AWS_ACCESS_KEY_ID="your_key"
-   export AWS_SECRET_ACCESS_KEY="your_secret"
-   export AWS_STORAGE_BUCKET_NAME="your_bucket"
-   export AWS_S3_ENDPOINT_URL="https://your-s3-endpoint"
-   export AWS_S3_REGION_NAME=""
+   cp local_config_example.py local_config.py
+   ```
+
+3. Edit `local_config.py` with your settings:
+   ```python
+   DATABASES = [
+       {
+           "name": "my_database",
+           "host": "localhost",
+           "port": "5432",
+           "user": "postgres",
+           "password": "password",
+       },
+       {
+           "name": "another_database",
+           "host": "db.example.com",
+           "port": "5432",
+           "user": "admin",
+           "password": "secret",
+       },
+   ]
+
+   S3_CONFIG = {
+       "endpoint_url": "https://your-s3-endpoint",
+       "access_key_id": "YOUR_ACCESS_KEY",
+       "secret_access_key": "YOUR_SECRET_KEY",
+       "bucket_name": "your_bucket",
+       "region_name": "",  # optional
+   }
    ```
 
 ## Usage
@@ -29,19 +48,20 @@ Backs up a PostgreSQL database to S3-compatible storage.
 ./s3_backup.sh
 ```
 
-Or manually:
+Or directly:
 ```bash
-source local.sh
 python backup.py
 ```
 
 Backups are stored as: `{dbname}/{date-time-randint}/db.dump`
 
+Each database gets its own folder in S3. If one database fails, the script continues with the others.
+
 ## Crontab
 
 To run daily at 3 AM:
 ```
-0 3 * * * /Users/timurbakibayev/projects/backuper/s3_backup.sh
+0 3 * * * /path/to/backuper/s3_backup.sh
 ```
 
 ## Restore
