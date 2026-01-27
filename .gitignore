@@ -1,4 +1,5 @@
 local.sh
+local_config.py
 venv/
 nvev/
 __pycache__/
