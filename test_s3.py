@@ -1,3 +1,4 @@
+import os
 import boto3
 from botocore.client import Config
 
@@ -12,13 +13,15 @@ s3 = boto3.client(
     config=Config(signature_version='s3v4'),
 )
 
-key = 'test/hello.txt'
-body = b'hello from test_s3.py\n'
+bucket = S3_CONFIG['bucket_name']
 
-print(f"Uploading to bucket={S3_CONFIG['bucket_name']} key={key} ...")
-s3.put_object(Bucket=S3_CONFIG['bucket_name'], Key=key, Body=body)
-print("OK")
-
-print("Reading back...")
-resp = s3.get_object(Bucket=S3_CONFIG['bucket_name'], Key=key)
-print("Content:", resp['Body'].read())
+for size_mb in [1, 10, 50, 110]:
+    size = size_mb * 1024 * 1024
+    data = os.urandom(size)
+    key = f'test/size_{size_mb}mb.bin'
+    print(f"Uploading {size_mb} MB to {key} ...")
+    try:
+        s3.put_object(Bucket=bucket, Key=key, Body=data)
+        print(f"  OK ({size_mb} MB)")
+    except Exception as e:
+        print(f"  FAIL ({size_mb} MB): {e}")
